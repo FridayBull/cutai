@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cutai live</title>
+<style>
+  :root { --bg: #0b0b0d; --panel: #141417; --line: #26262b; --fg: #ececee; --mute: #7d7d86; --acc: #3d8bff; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 12px/1.4 -apple-system, system-ui, sans-serif;
+         display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
+  #name { font-weight: 600; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #vbtn { display: none; background: none; color: var(--fg); border: 1px solid var(--line); border-radius: 4px;
+          padding: 3px 10px; font: inherit; cursor: pointer; }
+  #vbtn:hover, #vbtn.on { border-color: var(--acc); color: #fff; }
+  #count { color: var(--mute); margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #bar { height: 2px; background: var(--acc); width: 0; transition: width .4s; box-shadow: 0 0 8px var(--acc); }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; } }
+  #stage { min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px 16px; }
+  #wipe { position: relative; height: 100%; max-width: 100%; display: none; touch-action: none; cursor: ew-resize; user-select: none; }
+  #wipe img { display: block; height: 100%; max-width: 100%; object-fit: contain; border-radius: 6px; }
+  #raw { position: absolute; inset: 0; width: 100%; transition: clip-path 1.1s cubic-bezier(.6, 0, .2, 1); }
+  #knife { position: absolute; top: 0; bottom: 0; width: 1px; background: #fff; box-shadow: 0 0 6px #000;
+           transition: left 1.1s cubic-bezier(.6, 0, .2, 1); pointer-events: none; }
+  #wipe.drag #raw, #wipe.drag #knife { transition: none; }
+  .tag { position: absolute; top: 8px; padding: 2px 6px; border-radius: 3px; background: #000a; font-size: 10px;
+         letter-spacing: .08em; text-transform: uppercase; pointer-events: none; }
+  #video { display: none; max-width: 100%; max-height: 100%; border-radius: 6px; }
+  .empty { color: var(--mute); }
+  aside { background: var(--panel); border-left: 1px solid var(--line); padding: 14px; overflow: auto; }
+  h2 { margin: 0 0 8px; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--mute); font-weight: 600; }
+  canvas { display: block; width: 100%; aspect-ratio: 1; background: #0e0e11; border: 1px solid var(--line); border-radius: 4px; }
+  .legend { display: flex; gap: 12px; margin: 6px 0 16px; color: var(--mute); }
+  .legend i { display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 4px; }
+  .g { margin-bottom: 11px; }
+  .g div:first-child { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .g b { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .track { position: relative; height: 1px; background: var(--line); }
+  .fill { position: absolute; top: -0.5px; height: 2px; background: var(--fg); transition: left .6s, width .6s; }
+  .dot { position: absolute; top: -3px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%;
+         background: var(--bg); border: 1.5px solid var(--fg); transition: left .6s; }
+  .tick { position: absolute; top: -3px; width: 1px; height: 7px; background: var(--mute); }
+  .x { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+  .x b { font-weight: 500; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sw { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-left: 4px; vertical-align: -1px; border: 1px solid #fff3; }
+  #note { color: var(--mute); margin: -2px 0 12px; }
+  #strip { display: flex; gap: 4px; padding: 0 16px 12px; overflow-x: auto; }
+  #strip img { height: 64px; border-radius: 3px; opacity: .5; flex: none; cursor: pointer; transition: opacity .2s; }
+  #strip img:hover { opacity: .85; } #strip img.on { opacity: 1; outline: 2px solid var(--acc); }
+  #left { min-height: 0; display: flex; flex-direction: column; }
+  #left #stage { flex: 1; }
+  #tlrow { display: none; align-items: center; gap: 10px; padding: 0 16px 10px; }
+  #tc { font-variant-numeric: tabular-nums; color: var(--mute); white-space: nowrap; min-width: 92px; }
+  #tl { position: relative; flex: 1; height: 34px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+        cursor: ew-resize; touch-action: none; overflow: hidden; user-select: none; }
+  .seg { position: absolute; top: 0; bottom: 0; border-right: 1px solid var(--bg); color: var(--mute); font-size: 10px;
+         padding: 2px 4px; overflow: hidden; }
+  .seg:nth-child(odd) { background: #1b1b20; } .seg:nth-child(even) { background: #222228; }
+  .seg.on { background: color-mix(in srgb, var(--acc) 30%, #1b1b20); color: #fff; }
+  #ph { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--acc); box-shadow: 0 0 6px var(--acc); pointer-events: none; }
+  #keys { color: var(--mute); font-size: 10px; white-space: nowrap; }
+  @media (max-width: 760px) { #keys { display: none; } }
+</style>
+</head>
+<body>
+<header><span id="name">cutai</span><button id="vbtn" title="play the rendered video">▶ Video</button><span id="count"></span></header>
+<div id="bar"></div>
+<main>
+  <div id="left">
+  <div id="stage">
+    <p class="empty" id="wait">Waiting for the first frame …</p>
+    <div id="wipe">
+      <img id="graded" alt="graded">
+      <img id="raw" alt="original">
+      <div id="knife"></div>
+      <span class="tag" style="left:8px">Original</span><span class="tag" style="right:8px">cutai</span>
+    </div>
+    <video id="video" controls playsinline loop></video>
+  </div>
+  <div id="tlrow"><span id="tc">0:00.0 / 0:00.0</span><div id="tl"><div id="segs"></div><div id="ph"></div></div>
+    <span id="keys">Space ▶︎ · ←→ frame · ↑↓ cut</span></div>
+  </div>
+  <aside>
+    <h2>Curve</h2>
+    <canvas id="curve" width="540" height="540"></canvas>
+    <div class="legend"><span><i style="background:#6a6a72"></i>original</span><span><i style="background:var(--acc)"></i>cutai</span><span><i style="background:#fff"></i>curve</span></div>
+    <h2>Look</h2>
+    <div id="note"></div>
+    <div id="gauges"></div>
+    <div id="extras"></div>
+  </aside>
+</main>
+<div id="strip"></div>
+<script>
+const $ = id => document.getElementById(id);
+const V = document.getElementById("video");
+// Regler: Wertebereich + Neutralwert (dort beginnt die Linie)
+const G = [
+  ["denoise", "Denoise", 0, 5, 0], ["sharpen", "Sharpen", 0, 1, 0],
+  ["contrast", "Contrast", 0.5, 2, 1], ["brightness", "Brightness", -0.3, 0.3, 0],
+  ["saturation", "Saturation", 0, 2, 1],
+  ["grain", "Grain", 0, 20, 0], ["vignette", "Vignette", 0, 1, 0],
+];
+$("gauges").innerHTML = G.map(([k, l, a, b, n, cls]) =>
+  `<div class="g ${cls || ""}" id="g_${k}"><div><span>${l}</span><b>–</b></div>
+   <div class="track"><div class="tick" style="left:${100 * (n - a) / (b - a)}%"></div><div class="fill"></div><div class="dot"></div></div></div>`).join("");
+
+let last = 0, mode = "", pairKey = "", look = null, hist = {raw: null, graded: null}, x = 50, picked = -1;
+
+function gauges(lk) {
+  for (const [k, , a, b, n] of G) {
+    const raw = lk[k] ?? n, v = raw === true ? 1 : +raw || 0, p = q => Math.max(0, Math.min(100, 100 * (q - a) / (b - a)));
+    const el = $("g_" + k);
+    el.querySelector("b").textContent = k === "vignette" ? (raw === true ? "on" : raw ? (+raw).toFixed(2) : "off") : v.toFixed(2).replace(/\.?0+$/, "") || "0";
+    el.querySelector(".fill").style.left = Math.min(p(v), p(n)) + "%";
+    el.querySelector(".fill").style.width = Math.abs(p(v) - p(n)) + "%";
+    el.querySelector(".dot").style.left = p(v) + "%";
+  }
+}
+
+const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+function extras(lk) {  // nur was der Look wirklich nutzt; Akzentfarbe folgt dem Look
+  const sw = c => `<i class="sw" style="background:${esc(c)}"></i>`;
+  const tint = a => `rgb(${(a || [0, 0, 0]).map(v => Math.max(0, Math.min(255, Math.round(128 + 500 * v)))).join(",")})`;
+  const hold = lk.hold && lk.hold.color && lk.hold.color.replace(/^0x/i, "#");
+  const rows = [];
+  if (hold) rows.push(["Color hold", `${(+lk.hold.similarity || 0.1).toFixed(2)} ${sw(hold)}`]);
+  if ((lk.shadows || []).some(Boolean) || (lk.highlights || []).some(Boolean)) rows.push(["Balance shadows · highlights", sw(tint(lk.shadows)) + sw(tint(lk.highlights))]);
+  if (lk.lut) rows.push(["LUT", esc(String(lk.lut).split("/").pop())]);
+  if (lk.bw) rows.push(["Black & white", "on"]);
+  if (lk.filter) rows.push(["Custom filter", `<span title="${esc(lk.filter)}">${esc(lk.filter.split("=")[0])} …</span>`]);
+  $("extras").innerHTML = rows.map(([l, v]) => `<div class="x"><span>${l}</span><b>${v}</b></div>`).join("");
+  $("note").textContent = lk.note || "";
+  document.documentElement.style.setProperty("--acc", lk.accent || hold || "#3d8bff");
+}
+
+function histogram(img) {  // Helligkeit in 64 Stufen, aus verkleinertem Bild (billig)
+  const c = document.createElement("canvas"), w = 120, h = Math.round(120 * img.naturalHeight / img.naturalWidth) || 120;
+  c.width = w; c.height = h;
+  const g = c.getContext("2d", {willReadFrequently: true});
+  g.drawImage(img, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data, bins = new Array(64).fill(0);
+  for (let i = 0; i < d.length; i += 4) bins[Math.min(63, (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) >> 2)]++;
+  const m = Math.max(...bins.slice(1, 63), 1);
+  return bins.map(v => Math.min(1, Math.sqrt(v / m)));
+}
+
+function spline(pts) {  // Catmull-Rom durch die Kurvenpunkte
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    for (let t = 0; t <= 1; t += 0.05) {
+      const t2 = t * t, t3 = t2 * t, f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  return out;
+}
+
+function drawCurve() {
+  const cv = $("curve"), g = cv.getContext("2d"), S = cv.width, P = 18, W = S - 2 * P;
+  const X = v => P + v * W, Y = v => P + (1 - v) * W;
+  g.clearRect(0, 0, S, S);
+  g.strokeStyle = "#1f1f24"; g.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(X(i / 4), Y(0)); g.lineTo(X(i / 4), Y(1)); g.moveTo(X(0), Y(i / 4)); g.lineTo(X(1), Y(i / 4)); g.stroke(); }
+  const acc = getComputedStyle(document.documentElement).getPropertyValue("--acc").trim();
+  for (const [h, col, fill] of [[hist.raw, "#6a6a72", "#6a6a7222"], [hist.graded, acc, /^#[0-9a-f]{6}$/i.test(acc) ? acc + "26" : "#ffffff14"]]) {
+    if (!h) continue;
+    g.beginPath(); g.moveTo(X(0), Y(0));
+    h.forEach((v, i) => g.lineTo(X(i / 63), Y(v * 0.9)));
+    g.lineTo(X(1), Y(0)); g.closePath();
+    g.fillStyle = fill; g.fill(); g.strokeStyle = col; g.lineWidth = 1.5; g.stroke();
+  }
+  g.setLineDash([4, 6]); g.strokeStyle = "#3a3a42"; g.beginPath(); g.moveTo(X(0), Y(0)); g.lineTo(X(1), Y(1)); g.stroke(); g.setLineDash([]);
+  const pts = (look && look.curve) || [[0, 0], [1, 1]];
+  g.strokeStyle = "#fff"; g.lineWidth = 2.5; g.beginPath();
+  spline(pts).forEach(([a, b], i) => i ? g.lineTo(X(a), Y(b)) : g.moveTo(X(a), Y(b)));
+  g.stroke();
+  for (const [a, b] of pts) { g.beginPath(); g.arc(X(a), Y(b), 5, 0, 7); g.fillStyle = "#0e0e11"; g.fill(); g.lineWidth = 2; g.stroke(); }
+}
+
+function setKnife(v, animate) {
+  x = v;
+  $("wipe").classList.toggle("drag", !animate);
+  $("raw").style.clipPath = `inset(0 ${100 - x}% 0 0)`;
+  $("knife").style.left = x + "%";
+}
+
+function showPair(graded, raw) {  // Vorher/Nachher; neues Bild: vom Original zum Look wischen
+  const key = graded + "|" + raw;
+  if (key === pairKey) return;
+  pairKey = key;
+  $("wait").style.display = "none"; $("video").style.display = "none"; $("video").pause(); $("wipe").style.display = "block";
+  $("vbtn").classList.remove("on");
+  mode = "img";
+  const gi = $("graded"), ri = $("raw");
+  gi.onload = () => { hist.graded = histogram(gi); drawCurve(); };
+  ri.onload = () => {
+    hist.raw = histogram(ri); drawCurve();
+    setKnife(100, false);
+    requestAnimationFrame(() => requestAnimationFrame(() => setKnife(50, true)));
+  };
+  ri.style.display = raw ? "block" : "none";
+  if (!raw) hist.raw = null;
+  gi.src = graded; if (raw) ri.src = raw;
+}
+
+function showVideo(src) {
+  if (mode === "video:" + src) return;
+  mode = "video:" + src; pairKey = "";
+  $("wait").style.display = "none"; $("wipe").style.display = "none";
+  if (V.dataset.src !== src) { V.src = src; V.dataset.src = src; }  // gleiche Datei: Position behalten
+  V.style.display = "block";
+  $("vbtn").classList.add("on"); picked = -1; mark();
+}
+let videoSrc = "", lastFrame = "";
+$("vbtn").onclick = e => { e.currentTarget.blur(); videoSrc && showVideo(videoSrc); };
+
+// Timeline: Shot-Blöcke aus den Schnittzeiten, rote Linie = Position, ziehen = spulen
+let cuts = [];
+const fmt = t => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
+const dur = () => V.duration || cuts.at(-1) || 0;
+function segs(c) {
+  cuts = c || [];
+  const T = cuts.at(-1);
+  $("segs").innerHTML = cuts.slice(0, -1).map((a, i) =>
+    `<div class="seg" style="left:${100 * a / T}%;width:${100 * (cuts[i + 1] - a) / T}%">${i + 1}</div>`).join("");
+  head();
+}
+function head() {
+  const d = dur(), t = V.currentTime + 1 / 60;  // halber Frame Toleranz am Schnitt
+  if (!d) return;
+  $("ph").style.left = 100 * V.currentTime / d + "%";
+  $("tc").textContent = `${fmt(V.currentTime)} / ${fmt(d)}`;
+  const i = cuts.findIndex((a, k) => t >= a && t < (cuts[k + 1] ?? 1e9));
+  [...$("segs").children].forEach((e, k) => e.classList.toggle("on", k === i));
+}
+function loop() { head(); if (!V.paused) requestAnimationFrame(loop); }  // nur beim Abspielen
+V.addEventListener("play", loop);
+["seeked", "loadedmetadata", "pause", "timeupdate"].forEach(ev => V.addEventListener(ev, head));
+function ensureVideo() { if (!mode.startsWith("video") && videoSrc) showVideo(videoSrc); return mode.startsWith("video"); }
+function seekTo(e) {
+  const r = $("tl").getBoundingClientRect();
+  if (ensureVideo()) { V.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * dur(); head(); }
+}
+let wasPlaying = false;
+$("tl").addEventListener("pointerdown", e => { $("tl").setPointerCapture(e.pointerId); wasPlaying = !V.paused; V.pause(); seekTo(e); });
+$("tl").addEventListener("pointermove", e => { if ($("tl").hasPointerCapture(e.pointerId)) seekTo(e); });
+$("tl").addEventListener("pointerup", () => { if (wasPlaying) V.play(); });
+window.addEventListener("keydown", e => {
+  const k = e.code;
+  if (!["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(k) || !ensureVideo()) return;
+  e.preventDefault(); e.stopPropagation();  // nicht doppelt durch die Video-Steuerung
+  if (k === "Space") return V.paused ? V.play() : V.pause();
+  V.pause();
+  const t = V.currentTime;
+  if (k === "ArrowLeft" || k === "ArrowRight") V.currentTime = Math.max(0, t + (k === "ArrowRight" ? 1 : -1) * (e.shiftKey ? 1 : 1 / 30));
+  else {
+    const n = k === "ArrowDown" ? cuts.find(a => a > t + 0.01) : [...cuts].reverse().find(a => a < t - 0.05);
+    if (n !== undefined) V.currentTime = Math.min(n, dur() - 0.01);
+  }
+}, true);
+
+function render(s) {
+  $("name").textContent = s.name ? "cutai · " + s.name : "cutai";
+  $("count").textContent = s.total ? `${s.done || 0} / ${s.total}` : "";
+  $("bar").style.width = s.total ? `${100 * (s.done || 0) / s.total}%` : "0";
+  if (s.look) { look = s.look; gauges(look); extras(look); drawCurve(); }
+  if (s.video) {
+    videoSrc = `out/${encodeURIComponent(s.video)}?v=${s.vt}`;
+    $("vbtn").style.display = "inline-block";
+    $("vbtn").textContent = "▶ " + s.video.replace(/\.mp4$/, "");
+    $("tlrow").style.display = "flex";
+    if (JSON.stringify(s.vcuts || []) !== JSON.stringify(cuts)) segs(s.vcuts);
+  }
+  const t = (s.thumbs || []).map(p => Array.isArray(p) ? p : [p, null]);
+  const strip = $("strip");
+  if (t.length < strip.children.length) strip.replaceChildren();
+  t.slice(strip.children.length).forEach(([g, r], i) => {
+    const im = document.createElement("img");
+    im.src = g; im.dataset.raw = r || "";
+    im.onclick = () => { picked = [...strip.children].indexOf(im); mark(); showPair(g + "?v=" + s.t, r ? r + "?v=" + s.t : ""); };
+    strip.append(im);
+  });
+  if (t.length) strip.scrollLeft = strip.scrollWidth;
+  if (s.frame && s.frame !== lastFrame) { lastFrame = s.frame; picked = -1; mark(); showPair(`${s.frame}?v=${s.t}`, s.raw ? `${s.raw}?v=${s.t}` : ""); }
+  else if (s.video && !t.length) showVideo(videoSrc);
+}
+function mark() { [...$("strip").children].forEach((im, i) => im.classList.toggle("on", i === picked)); }
+
+const wipe = $("wipe");
+wipe.addEventListener("pointerdown", e => { wipe.setPointerCapture(e.pointerId); move(e); });
+wipe.addEventListener("pointermove", e => { if (wipe.hasPointerCapture(e.pointerId)) move(e); });
+function move(e) { const r = $("graded").getBoundingClientRect(); setKnife(Math.max(0, Math.min(100, 100 * (e.clientX - r.left) / r.width)), false); }
+
+async function tick() {
+  if (document.hidden) return;  // Hintergrund-Tab: keine Abfragen
+  try {
+    const s = await (await fetch("out/status.json", {cache: "no-store"})).json();
+    if (s.t !== last) { last = s.t; render(s); }
+  } catch {}
+}
+gauges({}); drawCurve();
+setInterval(tick, 2000);
+document.addEventListener("visibilitychange", tick);
+tick();
+</script>
+</body>
+</html>

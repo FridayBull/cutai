@@ -1,0 +1,17 @@
+out/
+song/
+ref/
+plans/
+bridge/
+__pycache__/
+segment
+people
+resolve_mcp.py
+*.mp4
+*.MP4
+*.mov
+*.wav
+*.m4a
+*.mp3
+.DS_Store
+cutai-demo/

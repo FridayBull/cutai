@@ -1,0 +1,19 @@
+{
+ "name": "Demo",
+ "song": "song.wav",
+ "song_in": 0,
+ "bpm": 120,
+ "fade": 1.0,
+ "size": [1080, 1920],
+ "look": {"preset": "cinematic", "contrast": 1.1, "saturation": 1.2, "accent": "#ff3d6e"},
+ "flash_frames": 0,
+ "shots": [
+  {"clip": "fractal", "in": 0, "beats": 4, "mask": "none", "frame": [0.5, 0.5, 1], "zoom": 0.08, "note": "Intro"},
+  {"clip": "waves", "in": 1, "beats": 2, "mask": "none", "frame": [0.3, 0.5, 1], "fx": ["zoom"]},
+  {"clip": "life", "in": 2, "beats": 2, "mask": "none", "frame": [0.5, 0.5, 1], "fx": ["shake"]},
+  {"clip": "bars", "in": 1, "beats": 2, "mask": "none", "frame": [0.5, 0.5, 1], "fx": ["rgb"], "look": {"bw": true}},
+  {"clip": "fractal", "in": 4, "beats": 2, "mask": "none", "frame": [0.5, 0.5, 1.4], "fx": ["flash"]},
+  {"clip": "life", "in": 5, "beats": 4, "mask": "none", "frame": [0.6, 0.5, 1], "fx": ["zoom", "rgb"]},
+  {"clip": "waves", "in": 3, "beats": 4, "mask": "none", "frame": [0.7, 0.5, 1], "note": "Outro"}
+ ]
+}

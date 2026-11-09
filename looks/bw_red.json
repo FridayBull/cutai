@@ -1,0 +1,5 @@
+{
+ "note": "Black and white, high contrast, only strong red survives",
+ "hold": {"color": "#E01010", "similarity": 0.08, "blend": 0.04},
+ "saturation": 1.4, "contrast": 1.3, "brightness": -0.03
+}

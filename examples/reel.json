@@ -1,0 +1,17 @@
+{
+ "name": "Beispiel_Reel",
+ "song": "~/Musik/song.wav",
+ "song_in": 113.7,
+ "bpm": 152,
+ "fade": 2.0,
+ "size": [1080, 1920],
+ "fps": 30,
+ "saturation": 1.1,
+ "shots": [
+  {"clip": "0545", "in": "auto", "beats": 4, "note": "Intro, Smart Reframe auf die Person"},
+  {"clip": "0583", "in": 4, "beats": 2, "mask": "fg", "note": "Totale, Silhouette vom Vordergrund"},
+  {"clip": "0566", "in": 1.0, "beats": 1, "flash": false, "note": "harter Schnitt ohne Silhouette"},
+  {"clip": "0589", "in": 189.5, "beats": 4, "fx": ["zoom", "rgb"], "note": "Drop mit Zoom-Through"},
+  {"clip": "0594", "in": 10.0, "beats": 8, "mask": "fg", "zoom": 0.08, "note": "Ende, langsamer Push-in"}
+ ]
+}

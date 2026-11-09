@@ -1,0 +1,6 @@
+{
+ "note": "Almost untouched: light denoise and sharpening. Good base for grading in Resolve.",
+ "denoise": 1, "sharpen": 0.3,
+ "curve": [[0, 0], [1, 1]], "shadows": [0, 0, 0], "highlights": [0, 0, 0],
+ "saturation": 1, "contrast": 1, "brightness": 0, "vignette": false, "grain": 0
+}
