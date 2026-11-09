@@ -19,7 +19,7 @@ assert sum(s["len"] for s in sh) == round(sum(s["beats"] for s in plan["shots"])
 assert all(a["pos"] + a["len"] == b["pos"] for a, b in zip(sh, sh[1:]))
 
 # Clip-Namen: voller Name oder eindeutiger Teil, nicht Teil einer anderen Zahl
-cl = {"DJI_20250101205945_0594_D": "a", "DJI_20250101210000_0595_D": "b", "IMG_1234": "c"}
+cl = {"CAM_A1205945_0594_D": "a", "CAM_A1210000_0595_D": "b", "IMG_1234": "c"}
 assert cut.clip(cl, "0594") == "a" and cut.clip(cl, "1234") == "c" and cut.clip(cl, "IMG_1234") == "c"
 try:
     cut.clip(cl, "D")  # in zwei Namen -> Fehler statt falscher Clip
